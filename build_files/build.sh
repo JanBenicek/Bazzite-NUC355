@@ -17,6 +17,7 @@ PACKAGES=(
   ripgrep
   fd-find
   rclone
+  htop
   unzip
   curl
   ntfs-3g
