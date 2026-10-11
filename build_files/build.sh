@@ -35,6 +35,13 @@ dnf5 -y config-manager addrepo --from-repofile=https://download.docker.com/linux
 dnf5 -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable docker.service containerd.service
 
+# balenaEtcher must be installed while the immutable image is being built.
+# Installing an RPM later on a booted bootc system would only be transient.
+ETCHER_API='https://api.github.com/repos/balena-io/etcher/releases/latest'
+ETCHER_URL="$(curl -fsSL --retry 3 "$ETCHER_API" | grep -oE 'https://[^\"]+balena-etcher-[^\"]+\.x86_64\.rpm' | head -n1)"
+[[ -n "$ETCHER_URL" ]] || { echo 'Could not determine latest balenaEtcher x86_64 RPM.' >&2; exit 1; }
+dnf5 -y install "$ETCHER_URL"
+
 # /usr/local is persistent mutable state on Bazzite/OSTree and therefore must
 # not contain files that belong to the immutable image. Install our helpers in
 # /usr/libexec and the user-facing command in /usr/bin instead.
