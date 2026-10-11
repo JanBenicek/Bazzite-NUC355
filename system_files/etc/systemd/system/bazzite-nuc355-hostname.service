@@ -3,11 +3,11 @@ Description=Set Bazzite NUC355 hardware-based hostname
 After=local-fs.target
 Before=NetworkManager.service network-pre.target
 Wants=network-pre.target
-ConditionPathExists=/usr/local/lib/bazzite-nuc355/set-hardware-hostname.sh
+ConditionPathExists=/usr/libexec/bazzite-nuc355/set-hardware-hostname.sh
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/lib/bazzite-nuc355/set-hardware-hostname.sh
+ExecStart=/usr/libexec/bazzite-nuc355/set-hardware-hostname.sh
 RemainAfterExit=yes
 
 [Install]
