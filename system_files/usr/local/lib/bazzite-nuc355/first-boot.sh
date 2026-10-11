@@ -44,6 +44,23 @@ install_rider() {
   echo 'JetBrains Toolbox installed and launched. Install/manage Rider there.'
 }
 
+install_balena_etcher() {
+  command -v balena-etcher >/dev/null && return 0
+  local api url tmp rpm
+  tmp="$(mktemp -d)"; rpm="$tmp/balena-etcher.rpm"
+  api='https://api.github.com/repos/balena-io/etcher/releases/latest'
+  url="$(curl -fsSL --retry 3 "$api" | grep -oE 'https://[^\"]+balena-etcher-[^\"]+\.x86_64\.rpm' | head -n1)"
+  if [[ -z "$url" ]]; then
+    echo 'Could not determine the latest balenaEtcher x86_64 RPM.'
+    rm -rf "$tmp"
+    return 1
+  fi
+  echo "Installing balenaEtcher from $url"
+  curl -fL --retry 3 "$url" -o "$rpm" || { rm -rf "$tmp"; return 1; }
+  sudo dnf5 -y install "$rpm" || { rm -rf "$tmp"; return 1; }
+  rm -rf "$tmp"
+}
+
 install_bootstrap_studio() {
   local dl file answer
   dl="$(download_dir)"
@@ -103,6 +120,7 @@ EOF
 install_flatpaks || echo 'WARNING: some Flatpaks failed.'
 configure_docker || echo 'WARNING: Docker configuration failed.'
 install_rider || echo 'WARNING: JetBrains Toolbox installation failed.'
+install_balena_etcher || echo 'WARNING: balenaEtcher was not installed.'
 install_bootstrap_studio || echo 'WARNING: Bootstrap Studio was not installed.'
 install_tmog || echo 'WARNING: TMOG was not installed.'
 /usr/local/lib/bazzite-nuc355/install-resolve-studio.sh || echo 'WARNING: Resolve Studio was not installed.'
@@ -110,8 +128,6 @@ install_tmog || echo 'WARNING: TMOG was not installed.'
 echo; echo 'Host development environment:'
 dotnet --info || true
 git --version || true
-node --version || true
-npm --version || true
 docker --version || true
 
 touch "$DONE"
