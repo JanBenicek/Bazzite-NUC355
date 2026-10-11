@@ -27,6 +27,8 @@ if command -v distrobox >/dev/null 2>&1; then
   echo 'Then install packages from config/dev-distrobox-packages.txt.'
 fi
 
-echo
-echo 'For DaVinci Resolve on Bazzite, use: ujust install-resolve'
-echo 'After installation, run n355-media-check to inspect VA-API/OpenCL.'
+printf '\nDaVinci Resolve Studio will now be installed.\n'
+"$ROOT_DIR/scripts/install-resolve-studio.sh"
+
+printf '\nUser setup complete.\n'
+echo 'Run n355-media-check to inspect Intel VA-API/OpenCL support.'
