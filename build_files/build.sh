@@ -56,6 +56,8 @@ fi
 chmod 0755 /usr/local/bin/n355-media-check
 chmod 0755 /usr/local/lib/bazzite-nuc355/first-boot.sh
 chmod 0755 /usr/local/lib/bazzite-nuc355/install-resolve-studio.sh
+chmod 0755 /usr/local/lib/bazzite-nuc355/set-hardware-hostname.sh
+systemctl enable bazzite-nuc355-hostname.service
 
 # Keep the final image clean.
 dnf5 clean all
