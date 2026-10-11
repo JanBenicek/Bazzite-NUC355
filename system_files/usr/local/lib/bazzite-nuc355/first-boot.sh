@@ -16,10 +16,16 @@ install_flatpaks() {
   retry flatpak install --user -y --noninteractive flathub "${apps[@]}"
 }
 
-install_devbox() {
-  command -v distrobox >/dev/null || return 0
-  distrobox list --no-color 2>/dev/null | grep -qE '(^|[[:space:]])dev([[:space:]]|$)' || distrobox create --yes --name dev --image registry.fedoraproject.org/fedora:latest
-  distrobox enter dev -- bash -lc 'sudo dnf -y install git git-lfs dotnet-sdk-10.0 nodejs npm podman-compose postgresql ffmpeg jq ripgrep fd-find'
+configure_docker() {
+  command -v docker >/dev/null || { echo 'WARNING: Docker is missing from the host image.'; return 1; }
+  if ! id -nG "$USER" | tr ' ' '\n' | grep -qx docker; then
+    echo 'Adding current user to the docker group (sudo authentication may be requested)...'
+    sudo usermod -aG docker "$USER" || return 1
+    echo 'Docker group membership will be active after the next login/reboot.'
+  fi
+  sudo systemctl enable --now docker.service || return 1
+  docker --version || true
+  docker compose version || true
 }
 
 install_rider() {
@@ -95,11 +101,18 @@ EOF
 }
 
 install_flatpaks || echo 'WARNING: some Flatpaks failed.'
-install_devbox || echo 'WARNING: dev Distrobox provisioning failed.'
+configure_docker || echo 'WARNING: Docker configuration failed.'
 install_rider || echo 'WARNING: JetBrains Toolbox installation failed.'
 install_bootstrap_studio || echo 'WARNING: Bootstrap Studio was not installed.'
 install_tmog || echo 'WARNING: TMOG was not installed.'
 /usr/local/lib/bazzite-nuc355/install-resolve-studio.sh || echo 'WARNING: Resolve Studio was not installed.'
+
+echo; echo 'Host development environment:'
+dotnet --info || true
+git --version || true
+node --version || true
+npm --version || true
+docker --version || true
 
 touch "$DONE"
 echo 'Bazzite NUC355 first-login provisioning finished.'
