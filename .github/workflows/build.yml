@@ -1,0 +1,87 @@
+name: Build custom Bazzite image
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+  schedule:
+    # Rebuild regularly so the image tracks Bazzite stable even without repo changes.
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+concurrency:
+  group: bazzite-n355-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      IMAGE_NAME: bazzite-n355
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.1.2
+
+      - name: Set image reference
+        id: image
+        shell: bash
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "ref=ghcr.io/${owner}/${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        run: |
+          printf '%s' '${{ github.token }}' | podman login ghcr.io \
+            --username '${{ github.actor }}' --password-stdin
+
+      - name: Build
+        run: |
+          podman build --pull=newer \
+            --tag '${{ steps.image.outputs.ref }}:latest' \
+            --label org.opencontainers.image.source='${{ github.server_url }}/${{ github.repository }}' \
+            --label org.opencontainers.image.revision='${{ github.sha }}' \
+            .
+
+      - name: Push
+        run: |
+          podman push \
+            --digestfile /tmp/image-digest \
+            '${{ steps.image.outputs.ref }}:latest'
+          echo "Published ${{ steps.image.outputs.ref }}:latest@$(cat /tmp/image-digest)"
+
+      - name: Require signing key
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+        run: |
+          test -n "$COSIGN_PRIVATE_KEY" || {
+            echo 'Missing GitHub Actions secret SIGNING_SECRET.' >&2
+            exit 1
+          }
+
+      - name: Sign image
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+          COSIGN_PASSWORD: ''
+        run: |
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY \
+            '${{ steps.image.outputs.ref }}@'"$(cat /tmp/image-digest)"
+
+      - name: Verify signature
+        if: ${{ hashFiles('cosign.pub') != '' }}
+        run: |
+          cosign verify --key cosign.pub \
+            '${{ steps.image.outputs.ref }}@'"$(cat /tmp/image-digest)"
