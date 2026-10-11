@@ -1,0 +1,6 @@
+cosign.key
+*.iso
+*.raw
+*.qcow2
+/build/
+.DS_Store
