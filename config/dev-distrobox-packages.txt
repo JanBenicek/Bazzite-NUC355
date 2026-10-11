@@ -1,0 +1,13 @@
+# Suggested packages for a Fedora development distrobox.
+# Intentionally not baked into the immutable host.
+git
+git-lfs
+dotnet-sdk-10.0
+nodejs
+npm
+podman-compose
+postgresql
+ffmpeg
+jq
+ripgrep
+fd-find
