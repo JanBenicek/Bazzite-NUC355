@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -u
+
+echo '=== System ==='
+cat /etc/os-release | grep -E '^(NAME|VERSION|VARIANT|PRETTY_NAME)=' || true
+uname -r
+
+echo
+echo '=== Intel GPU ==='
+lspci -nnk | grep -A4 -Ei 'VGA|Display|3D' || true
+
+echo
+echo '=== VA-API ==='
+if command -v vainfo >/dev/null 2>&1; then
+  vainfo 2>&1 || true
+else
+  echo 'vainfo not found'
+fi
+
+echo
+echo '=== OpenCL ==='
+if command -v clinfo >/dev/null 2>&1; then
+  clinfo 2>&1 | sed -n '1,160p' || true
+else
+  echo 'clinfo not found'
+fi
+
+echo
+echo '=== Intel render nodes ==='
+ls -la /dev/dri 2>/dev/null || true
+
+echo
+echo '=== FFmpeg hardware accelerators ==='
+ffmpeg -hide_banner -hwaccels 2>/dev/null || true
