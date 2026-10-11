@@ -158,7 +158,7 @@ EOF
 install_resolve() {
   # Resolve is intentionally not auto-reinstalled on every OS update. Bump
   # RESOLVE_VERSION when the desired Resolve installation procedure changes.
-  /usr/local/lib/bazzite-nuc355/install-resolve-studio.sh
+  /usr/libexec/bazzite-nuc355/install-resolve-studio.sh
 }
 
 CHANGED=0
