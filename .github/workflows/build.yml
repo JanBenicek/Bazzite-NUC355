@@ -37,12 +37,17 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v4.1.2
 
-      - name: Set image reference
+      - name: Set image reference and immutable tags
         id: image
         shell: bash
         run: |
           owner="${GITHUB_REPOSITORY_OWNER,,}"
-          echo "ref=ghcr.io/${owner}/${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+          ref="ghcr.io/${owner}/${IMAGE_NAME}"
+          date_tag="$(date -u +%Y-%m-%d)"
+          short_sha="${GITHUB_SHA::12}"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "date_tag=$date_tag" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=sha-$short_sha" >> "$GITHUB_OUTPUT"
 
       - name: Require signing key
         env:
@@ -66,14 +71,22 @@ jobs:
             --label org.opencontainers.image.source='${{ github.server_url }}/${{ github.repository }}' \
             --label org.opencontainers.image.revision='${{ github.sha }}' \
             .
+          podman tag '${{ steps.image.outputs.ref }}:latest' '${{ steps.image.outputs.ref }}:${{ steps.image.outputs.date_tag }}'
+          podman tag '${{ steps.image.outputs.ref }}:latest' '${{ steps.image.outputs.ref }}:${{ steps.image.outputs.sha_tag }}'
 
       - name: Push
         run: |
-          podman push \
-            --authfile "$REGISTRY_AUTH_FILE" \
-            --digestfile /tmp/image-digest \
+          podman push --authfile "$REGISTRY_AUTH_FILE" --digestfile /tmp/image-digest \
             '${{ steps.image.outputs.ref }}:latest'
-          echo "Published ${{ steps.image.outputs.ref }}:latest@$(cat /tmp/image-digest)"
+          podman push --authfile "$REGISTRY_AUTH_FILE" \
+            '${{ steps.image.outputs.ref }}:${{ steps.image.outputs.date_tag }}'
+          podman push --authfile "$REGISTRY_AUTH_FILE" \
+            '${{ steps.image.outputs.ref }}:${{ steps.image.outputs.sha_tag }}'
+          echo "Published tags:"
+          echo "  ${{ steps.image.outputs.ref }}:latest"
+          echo "  ${{ steps.image.outputs.ref }}:${{ steps.image.outputs.date_tag }}"
+          echo "  ${{ steps.image.outputs.ref }}:${{ steps.image.outputs.sha_tag }}"
+          echo "Digest: $(cat /tmp/image-digest)"
 
       - name: Sign image
         env:
