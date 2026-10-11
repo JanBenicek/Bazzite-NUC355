@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=Bazzite NUC355 First Login Setup
-Comment=Install and configure applications on the first login
-Exec=konsole -e /usr/local/lib/bazzite-nuc355/first-boot.sh
+Name=Bazzite NUC355 Provisioning
+Comment=Install and update workstation applications when required
+Exec=konsole -e /usr/libexec/bazzite-nuc355/first-boot.sh
 Terminal=false
 OnlyShowIn=KDE;
 X-KDE-autostart-after=panel
