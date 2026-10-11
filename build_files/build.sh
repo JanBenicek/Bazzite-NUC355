@@ -29,36 +29,25 @@ PACKAGES=(
 dnf5 -y install "${PACKAGES[@]}"
 
 # Docker Engine: use Docker's official Fedora repository and include Compose v2
-# and Buildx. The daemon is enabled in the image and the first-login script adds
+# and Buildx. The daemon is enabled in the image and the provisioning script adds
 # the desktop user to the docker group.
 dnf5 -y config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
 dnf5 -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable docker.service containerd.service
 
-# Install /etc files normally. Bazzite's /usr/local is a symlink whose target
-# may not exist inside the image build root yet, so resolve the link and create
-# its target explicitly before copying our custom files into it.
+# /usr/local is persistent mutable state on Bazzite/OSTree and therefore must
+# not contain files that belong to the immutable image. Install our helpers in
+# /usr/libexec and the user-facing command in /usr/bin instead.
 if [[ -d /ctx/system_files/etc ]]; then
   cp -a /ctx/system_files/etc/. /etc/
 fi
-if [[ -d /ctx/system_files/usr/local ]]; then
-  USR_LOCAL_TARGET="$(readlink -f /usr/local 2>/dev/null || true)"
-  if [[ -z "$USR_LOCAL_TARGET" ]]; then
-    USR_LOCAL_LINK="$(readlink /usr/local)"
-    if [[ "$USR_LOCAL_LINK" = /* ]]; then
-      USR_LOCAL_TARGET="$USR_LOCAL_LINK"
-    else
-      USR_LOCAL_TARGET="/usr/$USR_LOCAL_LINK"
-    fi
-  fi
-  mkdir -p "$USR_LOCAL_TARGET"
-  cp -a /ctx/system_files/usr/local/. "$USR_LOCAL_TARGET/"
-fi
+mkdir -p /usr/libexec/bazzite-nuc355
+cp -a /ctx/system_files/usr/local/lib/bazzite-nuc355/. /usr/libexec/bazzite-nuc355/
+install -Dm0755 /ctx/system_files/usr/local/bin/n355-media-check /usr/bin/n355-media-check
 
-chmod 0755 /usr/local/bin/n355-media-check
-chmod 0755 /usr/local/lib/bazzite-nuc355/first-boot.sh
-chmod 0755 /usr/local/lib/bazzite-nuc355/install-resolve-studio.sh
-chmod 0755 /usr/local/lib/bazzite-nuc355/set-hardware-hostname.sh
+chmod 0755 /usr/libexec/bazzite-nuc355/first-boot.sh
+chmod 0755 /usr/libexec/bazzite-nuc355/install-resolve-studio.sh
+chmod 0755 /usr/libexec/bazzite-nuc355/set-hardware-hostname.sh
 systemctl enable bazzite-nuc355-hostname.service
 
 # Keep the final image clean.
