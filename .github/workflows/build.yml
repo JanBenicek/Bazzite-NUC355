@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - '**.md'
+      - 'README.md'
   workflow_dispatch:
   schedule:
     # Rebuild regularly so the image tracks Bazzite stable even without repo changes.
