@@ -11,8 +11,6 @@ PACKAGES=(
   git
   git-lfs
   dotnet-sdk-10.0
-  nodejs
-  npm
   postgresql
   ffmpeg
   jq
@@ -21,6 +19,9 @@ PACKAGES=(
   rclone
   unzip
   curl
+  ntfs-3g
+  cifs-utils
+  gnome-disk-utility
 )
 
 dnf5 -y install "${PACKAGES[@]}"
