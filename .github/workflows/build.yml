@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       IMAGE_NAME: bazzite-n355
+      REGISTRY_AUTH_FILE: /tmp/containers-auth.json
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,9 +44,19 @@ jobs:
           owner="${GITHUB_REPOSITORY_OWNER,,}"
           echo "ref=ghcr.io/${owner}/${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
 
+      - name: Require signing key
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+        run: |
+          test -n "$COSIGN_PRIVATE_KEY" || {
+            echo 'Missing GitHub Actions secret SIGNING_SECRET.' >&2
+            exit 1
+          }
+
       - name: Log in to GHCR
         run: |
           printf '%s' '${{ github.token }}' | podman login ghcr.io \
+            --authfile "$REGISTRY_AUTH_FILE" \
             --username '${{ github.actor }}' --password-stdin
 
       - name: Build
@@ -59,29 +70,27 @@ jobs:
       - name: Push
         run: |
           podman push \
+            --authfile "$REGISTRY_AUTH_FILE" \
             --digestfile /tmp/image-digest \
             '${{ steps.image.outputs.ref }}:latest'
           echo "Published ${{ steps.image.outputs.ref }}:latest@$(cat /tmp/image-digest)"
-
-      - name: Require signing key
-        env:
-          COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
-        run: |
-          test -n "$COSIGN_PRIVATE_KEY" || {
-            echo 'Missing GitHub Actions secret SIGNING_SECRET.' >&2
-            exit 1
-          }
 
       - name: Sign image
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
           COSIGN_PASSWORD: ''
+          DOCKER_CONFIG: /tmp/cosign-docker
         run: |
+          mkdir -p "$DOCKER_CONFIG"
+          printf '%s' '${{ github.token }}' | cosign login ghcr.io \
+            --username '${{ github.actor }}' --password-stdin
           cosign sign --yes --key env://COSIGN_PRIVATE_KEY \
             '${{ steps.image.outputs.ref }}@'"$(cat /tmp/image-digest)"
 
       - name: Verify signature
         if: ${{ hashFiles('cosign.pub') != '' }}
+        env:
+          DOCKER_CONFIG: /tmp/cosign-docker
         run: |
           cosign verify --key cosign.pub \
             '${{ steps.image.outputs.ref }}@'"$(cat /tmp/image-digest)"
