@@ -32,8 +32,16 @@ dnf5 -y config-manager addrepo --from-repofile=https://download.docker.com/linux
 dnf5 -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable docker.service containerd.service
 
-# Copy files that should be part of the immutable OS image.
-cp -a /ctx/system_files/. /
+# Bazzite uses /usr/local as a symlink, so copying a complete /usr tree with
+# `cp -a` fails when it reaches system_files/usr/local. Install /etc normally
+# and copy the contents of usr/local through the existing symlink instead.
+if [[ -d /ctx/system_files/etc ]]; then
+  cp -a /ctx/system_files/etc/. /etc/
+fi
+if [[ -d /ctx/system_files/usr/local ]]; then
+  cp -a /ctx/system_files/usr/local/. /usr/local/
+fi
+
 chmod 0755 /usr/local/bin/n355-media-check
 chmod 0755 /usr/local/lib/bazzite-nuc355/first-boot.sh
 chmod 0755 /usr/local/lib/bazzite-nuc355/install-resolve-studio.sh
