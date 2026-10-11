@@ -32,14 +32,24 @@ dnf5 -y config-manager addrepo --from-repofile=https://download.docker.com/linux
 dnf5 -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable docker.service containerd.service
 
-# Bazzite uses /usr/local as a symlink, so copying a complete /usr tree with
-# `cp -a` fails when it reaches system_files/usr/local. Install /etc normally
-# and copy the contents of usr/local through the existing symlink instead.
+# Install /etc files normally. Bazzite's /usr/local is a symlink whose target
+# may not exist inside the image build root yet, so resolve the link and create
+# its target explicitly before copying our custom files into it.
 if [[ -d /ctx/system_files/etc ]]; then
   cp -a /ctx/system_files/etc/. /etc/
 fi
 if [[ -d /ctx/system_files/usr/local ]]; then
-  cp -a /ctx/system_files/usr/local/. /usr/local/
+  USR_LOCAL_TARGET="$(readlink -f /usr/local 2>/dev/null || true)"
+  if [[ -z "$USR_LOCAL_TARGET" ]]; then
+    USR_LOCAL_LINK="$(readlink /usr/local)"
+    if [[ "$USR_LOCAL_LINK" = /* ]]; then
+      USR_LOCAL_TARGET="$USR_LOCAL_LINK"
+    else
+      USR_LOCAL_TARGET="/usr/$USR_LOCAL_LINK"
+    fi
+  fi
+  mkdir -p "$USR_LOCAL_TARGET"
+  cp -a /ctx/system_files/usr/local/. "$USR_LOCAL_TARGET/"
 fi
 
 chmod 0755 /usr/local/bin/n355-media-check
