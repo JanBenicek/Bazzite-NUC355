@@ -1,0 +1,8 @@
+# Suggested user-facing apps. Install only the ones you want.
+# flatpak install flathub <APP-ID>
+
+com.google.Chrome
+org.localsend.localsend_app
+com.jgraph.drawio.desktop
+org.jellyfin.JellyfinDesktop
+com.github.tchx84.Flatseal
