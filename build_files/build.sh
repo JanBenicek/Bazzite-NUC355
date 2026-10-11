@@ -18,6 +18,7 @@ PACKAGES=(
   fd-find
   rclone
   htop
+  nano
   unzip
   curl
   ntfs-3g
