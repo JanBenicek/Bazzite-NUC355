@@ -35,6 +35,7 @@ Media / Intel GPU:
 - OpenCL diagnostics (`clinfo`)
 - FFmpeg
 - VLC — native RPM application
+- Aegisub — native RPM application
 - `n355-media-check` helper
 
 Common CLI tools:
@@ -51,6 +52,7 @@ Common CLI tools:
 Desktop/system packages:
 
 - VLC
+- Aegisub
 - balenaEtcher
 
 Package versions follow the Fedora/Bazzite repositories used by the current upstream Bazzite stable image, except where an application is deliberately obtained from its vendor.
@@ -155,8 +157,6 @@ The published image is signed with Cosign. The private signing key exists only a
 
 Changes limited to `README.md` do **not** trigger an image build. Manual `workflow_dispatch` and the scheduled weekly build remain available independently.
 
-The build following the move of Flatpak installation back to host-side provisioning completed successfully (`582e6efdbca3ad943e9693f39a49d629ded6919b`).
-
 ## Installing on a new NUC
 
 The repository publishes a bootc/OCI operating-system image, not a standalone custom USB ISO. Install stock Bazzite KDE first and then switch the installation to this image.
@@ -191,6 +191,7 @@ git --version
 docker --version
 docker compose version
 vlc --version
+aegisub --version
 rclone version
 htop --version
 nano --version
@@ -288,7 +289,7 @@ After the download is confirmed, the helper extracts the Studio installer and co
 
 The current split is:
 
-1. **Immutable bootc host image:** drivers, Intel compute/media support, .NET, Git, Docker, VLC, balenaEtcher, filesystem/network support, common CLI utilities and the provisioning helpers.
+1. **Immutable bootc host image:** drivers, Intel compute/media support, .NET, Git, Docker, VLC, Aegisub, balenaEtcher, filesystem/network support, common CLI utilities and the provisioning helpers.
 2. **System-wide Flatpaks:** standard desktop applications installed automatically on the actual host during first-login provisioning.
 3. **Vendor AppImage/package:** applications where a normal Fedora/Flatpak route is unsuitable.
 4. **Distrobox:** optional isolated/mutable development environments and project-specific stacks; no development container is created automatically.
@@ -298,6 +299,6 @@ This preserves Bazzite's atomic/bootc image model while avoiding Flatpak/Bubblew
 
 ## Project status
 
-The OCI image is published to GHCR with Cosign signing and historical date/SHA tags. Versioned provisioning and automatic hardware hostname support are implemented. PostgreSQL has been removed from the base image, and native VLC is now included in the desired immutable host image. The standard desktop Flatpaks install system-wide on the target host during first-login provisioning.
+The OCI image is published to GHCR with Cosign signing and historical date/SHA tags. Versioned provisioning and automatic hardware hostname support are implemented. PostgreSQL has been removed from the base image. Native VLC and Aegisub are included in the desired immutable host image. The standard desktop Flatpaks install system-wide on the target host during first-login provisioning.
 
 The next milestone is validation on the target NUC, including first-login provisioning, hardware acceleration, application startup, update and rollback testing.
