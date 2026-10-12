@@ -8,6 +8,7 @@ mkdir -p "$STATE" "$COMPONENTS" "$HOME/.local/bin" "$HOME/.local/share/applicati
 exec > >(tee -a "$LOG") 2>&1
 
 # Increment only the component whose provisioning logic or desired state changes.
+FLATPAKS_VERSION=2
 DOCKER_VERSION=1
 RIDER_VERSION=1
 ETCHER_VERSION=2
@@ -27,6 +28,23 @@ run_component() {
   echo; echo "=== $label (provisioning v$version) ==="
   if "$@"; then mark_component "$name" "$version"; echo "[OK] $label v$version"; CHANGED=1; return 0; fi
   echo "[FAILED] $label v$version"; return 1
+}
+
+install_flatpaks() {
+  local apps=(
+    com.google.Chrome
+    org.localsend.localsend_app
+    com.jgraph.drawio.desktop
+    org.jellyfin.JellyfinDesktop
+    com.github.tchx84.Flatseal
+    com.moonlight_stream.Moonlight
+    org.tigervnc.vncviewer
+  )
+  command -v flatpak >/dev/null || { echo 'Flatpak is missing from the host image.'; return 1; }
+  echo 'Configuring Flathub and installing workstation applications system-wide...'
+  retry sudo flatpak remote-add --system --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || return 1
+  retry sudo flatpak install --system -y --noninteractive flathub "${apps[@]}" || return 1
+  echo 'Workstation Flatpaks installed.'
 }
 
 configure_docker() {
@@ -116,6 +134,7 @@ install_resolve() { /usr/libexec/bazzite-nuc355/install-resolve-studio.sh; }
 
 CHANGED=0
 FAILED=()
+run_component flatpaks "$FLATPAKS_VERSION" 'Workstation Flatpaks' install_flatpaks || FAILED+=(flatpaks)
 run_component docker "$DOCKER_VERSION" 'Docker configuration' configure_docker || FAILED+=(docker)
 run_component rider "$RIDER_VERSION" 'JetBrains Toolbox / Rider setup' install_rider || FAILED+=(rider)
 run_component balena-etcher "$ETCHER_VERSION" 'balenaEtcher' verify_balena_etcher || FAILED+=(balena-etcher)
