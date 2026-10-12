@@ -11,7 +11,6 @@ PACKAGES=(
   git
   git-lfs
   dotnet-sdk-10.0
-  postgresql
   ffmpeg
   jq
   ripgrep
