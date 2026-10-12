@@ -34,6 +34,7 @@ Media / Intel GPU:
 - Intel GPU tools (`igt-gpu-tools`)
 - OpenCL diagnostics (`clinfo`)
 - FFmpeg
+- VLC — native RPM application
 - `n355-media-check` helper
 
 Common CLI tools:
@@ -47,8 +48,9 @@ Common CLI tools:
 - unzip
 - rclone
 
-Desktop/system package:
+Desktop/system packages:
 
+- VLC
 - balenaEtcher
 
 Package versions follow the Fedora/Bazzite repositories used by the current upstream Bazzite stable image, except where an application is deliberately obtained from its vendor.
@@ -68,6 +70,8 @@ The following applications are automatically installed from Flathub as **system-
 These Flatpaks are not installed while the OCI image itself is being built. Flatpak application installation uses Bubblewrap/user namespaces and does not work reliably inside the restricted Podman build environment used by GitHub Actions. Instead, the immutable image contains the provisioning logic and installs the applications on the real Bazzite host at first login.
 
 This means the applications are part of the intended standard installation, but their Flatpak payloads are downloaded on the target machine rather than stored inside the bootc image.
+
+The provisioning currently ensures that the centrally selected Flatpaks are installed. It does not automatically uninstall other Flatpaks that are already present on the machine.
 
 ### Per-user / interactive provisioning
 
@@ -186,6 +190,7 @@ dotnet --info
 git --version
 docker --version
 docker compose version
+vlc --version
 rclone version
 htop --version
 nano --version
@@ -283,7 +288,7 @@ After the download is confirmed, the helper extracts the Studio installer and co
 
 The current split is:
 
-1. **Immutable bootc host image:** drivers, Intel compute/media support, .NET, Git, Docker, balenaEtcher, filesystem/network support, common CLI utilities and the provisioning helpers.
+1. **Immutable bootc host image:** drivers, Intel compute/media support, .NET, Git, Docker, VLC, balenaEtcher, filesystem/network support, common CLI utilities and the provisioning helpers.
 2. **System-wide Flatpaks:** standard desktop applications installed automatically on the actual host during first-login provisioning.
 3. **Vendor AppImage/package:** applications where a normal Fedora/Flatpak route is unsuitable.
 4. **Distrobox:** optional isolated/mutable development environments and project-specific stacks; no development container is created automatically.
@@ -293,6 +298,6 @@ This preserves Bazzite's atomic/bootc image model while avoiding Flatpak/Bubblew
 
 ## Project status
 
-The OCI image currently builds successfully and is published to GHCR with Cosign signing and historical date/SHA tags. Versioned provisioning and automatic hardware hostname support are implemented. PostgreSQL has been removed from the base image. The standard desktop Flatpaks now install system-wide on the target host during first-login provisioning.
+The OCI image is published to GHCR with Cosign signing and historical date/SHA tags. Versioned provisioning and automatic hardware hostname support are implemented. PostgreSQL has been removed from the base image, and native VLC is now included in the desired immutable host image. The standard desktop Flatpaks install system-wide on the target host during first-login provisioning.
 
 The next milestone is validation on the target NUC, including first-login provisioning, hardware acceleration, application startup, update and rollback testing.
