@@ -13,6 +13,7 @@ PACKAGES=(
   dotnet-sdk-10.0
   ffmpeg
   vlc
+  aegisub
   jq
   ripgrep
   fd-find
