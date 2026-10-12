@@ -12,6 +12,7 @@ PACKAGES=(
   git-lfs
   dotnet-sdk-10.0
   ffmpeg
+  vlc
   jq
   ripgrep
   fd-find
