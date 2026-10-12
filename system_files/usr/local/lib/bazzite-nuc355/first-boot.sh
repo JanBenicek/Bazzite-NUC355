@@ -8,7 +8,7 @@ mkdir -p "$STATE" "$COMPONENTS" "$HOME/.local/bin" "$HOME/.local/share/applicati
 exec > >(tee -a "$LOG") 2>&1
 
 # Increment only the component whose provisioning logic or desired state changes.
-FLATPAKS_VERSION=1
+FLATPAKS_VERSION=2
 DOCKER_VERSION=1
 RIDER_VERSION=1
 ETCHER_VERSION=2
@@ -32,7 +32,15 @@ run_component() {
 
 install_flatpaks() {
   flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
-  local apps=(com.google.Chrome org.localsend.localsend_app com.jgraph.drawio.desktop org.jellyfin.JellyfinDesktop com.github.tchx84.Flatseal)
+  local apps=(
+    com.google.Chrome
+    org.localsend.localsend_app
+    com.jgraph.drawio.desktop
+    org.jellyfin.JellyfinDesktop
+    com.github.tchx84.Flatseal
+    com.moonlight_stream.Moonlight
+    org.tigervnc.vncviewer
+  )
   retry flatpak install --user -y --noninteractive flathub "${apps[@]}" || return 1
   retry flatpak update --user -y --noninteractive
 }
