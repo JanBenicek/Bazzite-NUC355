@@ -41,21 +41,10 @@ ETCHER_URL="$(curl -fsSL --retry 3 "$ETCHER_API" | grep -oE 'https://[^\"]+balen
 [[ -n "$ETCHER_URL" ]] || { echo 'Could not determine latest balenaEtcher x86_64 RPM.' >&2; exit 1; }
 dnf5 -y install "$ETCHER_URL"
 
-# Install the workstation Flatpaks system-wide while building the image. This
-# makes them available to every user immediately after boot, without waiting for
-# first-login provisioning. Flatpak keeps the applications separate from RPMs,
-# while their system installation is delivered as part of our bootc image.
-FLATPAKS=(
-  com.google.Chrome
-  org.localsend.localsend_app
-  com.jgraph.drawio.desktop
-  org.jellyfin.JellyfinDesktop
-  com.github.tchx84.Flatseal
-  com.moonlight_stream.Moonlight
-  org.tigervnc.vncviewer
-)
-flatpak remote-add --system --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install --system -y --noninteractive flathub "${FLATPAKS[@]}"
+# Flatpak applications are intentionally installed on the first graphical login.
+# Running flatpak install during an OCI/bootc build requires bubblewrap user
+# namespaces which are not available in the GitHub Actions Podman build sandbox.
+# first-boot.sh installs them system-wide on the real Bazzite host instead.
 
 # /usr/local is persistent mutable state on Bazzite/OSTree and therefore must
 # not contain files that belong to the immutable image. Install our helpers in
