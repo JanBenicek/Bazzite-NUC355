@@ -24,6 +24,7 @@ PACKAGES=(
   curl
   ntfs-3g
   cifs-utils
+  wireguard-tools
   gnome-disk-utility
 )
 
