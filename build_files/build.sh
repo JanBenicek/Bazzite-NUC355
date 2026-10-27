@@ -14,6 +14,7 @@ PACKAGES=(
   ffmpeg
   vlc
   aegisub
+  picard
   jq
   ripgrep
   fd-find
