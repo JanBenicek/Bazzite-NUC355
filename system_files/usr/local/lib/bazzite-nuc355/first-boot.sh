@@ -8,7 +8,7 @@ mkdir -p "$STATE" "$COMPONENTS" "$HOME/.local/bin" "$HOME/.local/share/applicati
 exec > >(tee -a "$LOG") 2>&1
 
 # Increment only the component whose provisioning logic or desired state changes.
-FLATPAKS_VERSION=2
+FLATPAKS_VERSION=3
 DOCKER_VERSION=1
 RIDER_VERSION=1
 ETCHER_VERSION=2
@@ -33,6 +33,7 @@ run_component() {
 install_flatpaks() {
   local apps=(
     com.google.Chrome
+    com.discordapp.Discord
     org.localsend.localsend_app
     com.jgraph.drawio.desktop
     org.jellyfin.JellyfinDesktop
