@@ -39,6 +39,7 @@ Media / Intel GPU:
 - FFmpeg
 - VLC — native RPM application
 - Aegisub — native RPM application
+- MusicBrainz Picard — native RPM application
 - `n355-media-check` helper
 
 Common CLI tools:
@@ -56,6 +57,7 @@ Desktop/system packages:
 
 - VLC
 - Aegisub
+- MusicBrainz Picard
 - balenaEtcher
 
 Package versions follow the Fedora/Bazzite repositories used by the current upstream Bazzite stable image, except where an application is deliberately obtained from its vendor.
@@ -195,6 +197,7 @@ docker --version
 docker compose version
 vlc --version
 aegisub --version
+picard --version
 wg --version
 rclone version
 htop --version
@@ -293,7 +296,7 @@ After the download is confirmed, the helper extracts the Studio installer and co
 
 The current split is:
 
-1. **Immutable bootc host image:** drivers, Intel compute/media support, .NET, Git, Docker, WireGuard tools, VLC, Aegisub, balenaEtcher, filesystem/network support, common CLI utilities and the provisioning helpers.
+1. **Immutable bootc host image:** drivers, Intel compute/media support, .NET, Git, Docker, WireGuard tools, VLC, Aegisub, MusicBrainz Picard, balenaEtcher, filesystem/network support, common CLI utilities and the provisioning helpers.
 2. **System-wide Flatpaks:** standard desktop applications installed automatically on the actual host during first-login provisioning.
 3. **Vendor AppImage/package:** applications where a normal Fedora/Flatpak route is unsuitable.
 4. **Distrobox:** optional isolated/mutable development environments and project-specific stacks; no development container is created automatically.
@@ -303,6 +306,6 @@ This preserves Bazzite's atomic/bootc image model while avoiding Flatpak/Bubblew
 
 ## Project status
 
-The OCI image is published to GHCR with Cosign signing and historical date/SHA tags. Versioned provisioning and automatic hardware hostname support are implemented. PostgreSQL has been removed from the base image. Native VLC, Aegisub and WireGuard userspace tools are included in the desired immutable host image. The standard desktop Flatpaks install system-wide on the target host during first-login provisioning.
+The OCI image is published to GHCR with Cosign signing and historical date/SHA tags. Versioned provisioning and automatic hardware hostname support are implemented. PostgreSQL has been removed from the base image. Native VLC, Aegisub, MusicBrainz Picard and WireGuard userspace tools are included in the desired immutable host image. The standard desktop Flatpaks install system-wide on the target host during first-login provisioning.
 
 The next milestone is validation on the target NUC, including first-login provisioning, hardware acceleration, application startup, networking/VPN, update and rollback testing.
