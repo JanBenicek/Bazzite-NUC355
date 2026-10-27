@@ -67,6 +67,7 @@ Package versions follow the Fedora/Bazzite repositories used by the current upst
 The following applications are automatically installed from Flathub as **system-wide Flatpaks**:
 
 - Google Chrome
+- Discord
 - LocalSend
 - Draw.io
 - Jellyfin Desktop
@@ -103,7 +104,7 @@ Provisioning state is stored per user under:
 Each component has an independent version. Current examples include:
 
 ```text
-flatpaks.v2.done
+flatpaks.v3.done
 docker.v1.done
 rider.v1.done
 balena-etcher.v2.done
@@ -208,7 +209,7 @@ nano --version
 
 After login, the provisioning script checks the requested version of every managed component against its marker in `~/.local/state/bazzite-nuc355/components/`.
 
-The system-wide Flatpaks are downloaded and installed at this stage. Some proprietary applications require interaction because their installers must be downloaded directly from the vendor.
+The system-wide Flatpaks, including Discord, are downloaded and installed at this stage. Some proprietary applications require interaction because their installers must be downloaded directly from the vendor.
 
 If a component is deferred or fails, completed components are retained and only incomplete/outdated components need to run again later.
 
@@ -297,7 +298,7 @@ After the download is confirmed, the helper extracts the Studio installer and co
 The current split is:
 
 1. **Immutable bootc host image:** drivers, Intel compute/media support, .NET, Git, Docker, WireGuard tools, VLC, Aegisub, MusicBrainz Picard, balenaEtcher, filesystem/network support, common CLI utilities and the provisioning helpers.
-2. **System-wide Flatpaks:** standard desktop applications installed automatically on the actual host during first-login provisioning.
+2. **System-wide Flatpaks:** standard desktop applications, including Discord, installed automatically on the actual host during first-login provisioning.
 3. **Vendor AppImage/package:** applications where a normal Fedora/Flatpak route is unsuitable.
 4. **Distrobox:** optional isolated/mutable development environments and project-specific stacks; no development container is created automatically.
 5. **Versioned provisioning:** idempotent lifecycle management for Flatpaks, user setup and proprietary applications.
@@ -306,6 +307,6 @@ This preserves Bazzite's atomic/bootc image model while avoiding Flatpak/Bubblew
 
 ## Project status
 
-The OCI image is published to GHCR with Cosign signing and historical date/SHA tags. Versioned provisioning and automatic hardware hostname support are implemented. PostgreSQL has been removed from the base image. Native VLC, Aegisub, MusicBrainz Picard and WireGuard userspace tools are included in the desired immutable host image. The standard desktop Flatpaks install system-wide on the target host during first-login provisioning.
+The OCI image is published to GHCR with Cosign signing and historical date/SHA tags. Versioned provisioning and automatic hardware hostname support are implemented. PostgreSQL has been removed from the base image. Native VLC, Aegisub, MusicBrainz Picard and WireGuard userspace tools are included in the desired immutable host image. The standard desktop Flatpaks, including Discord, install system-wide on the target host during first-login provisioning.
 
 The next milestone is validation on the target NUC, including first-login provisioning, hardware acceleration, application startup, networking/VPN, update and rollback testing.
