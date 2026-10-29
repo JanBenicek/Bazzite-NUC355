@@ -1,0 +1,3 @@
+# Fedora wireless-regdb/setregdomain reads this file from its udev rule when an
+# ieee80211 PHY appears. Keep the NUC fixed to the Czech ETSI regulatory domain.
+COUNTRY=CZ
