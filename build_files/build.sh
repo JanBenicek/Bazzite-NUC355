@@ -27,24 +27,9 @@ PACKAGES=(
   cifs-utils
   wireguard-tools
   gnome-disk-utility
-  wireless-regdb
-  iw
-  usb_modeswitch
-  usb_modeswitch-data
-  gcc
-  make
-  patch
-  elfutils-libelf-devel
 )
 
 dnf5 -y install "${PACKAGES[@]}"
-
-# TP-Link Archer TBE230U (37ad:0105, RTL8922AU): build the current
-# morrownr/rtw89 driver against the exact OGC kernel-devel tree already shipped
-# by Bazzite. The driver and firmware become part of this atomic deployment, so
-# each image/kernel update gets a matching module and rollback restores the
-# matching previous module together with the kernel.
-bash /ctx/install-tbe230u-driver.sh
 
 # Docker Engine: use Docker's official Fedora repository and include Compose v2
 # and Buildx. The daemon is enabled in the image and the provisioning script adds
