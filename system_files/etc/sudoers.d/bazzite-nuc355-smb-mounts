@@ -1,0 +1,3 @@
+# Allow local desktop users to invoke only the image-owned SMB mount manager.
+# The helper derives the account from SUDO_USER and validates all paths/options.
+%users ALL=(root) NOPASSWD: /usr/libexec/bazzite-nuc355/smb-mount-manager mount, /usr/libexec/bazzite-nuc355/smb-mount-manager unmount
