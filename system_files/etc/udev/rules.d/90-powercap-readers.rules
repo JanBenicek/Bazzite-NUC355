@@ -1,3 +1,4 @@
-# Allow members of powercap-readers to read CPU energy counters without running
-# monitoring applications such as TMOG as root.
-SUBSYSTEM=="powercap", ACTION=="add|change", RUN+="/bin/sh -c 'chgrp powercap-readers /sys%p/energy_uj && chmod 0440 /sys%p/energy_uj'"
+# Allow unprivileged monitoring applications such as TMOG to read CPU energy
+# counters without running as root. Only energy_uj is made world-readable;
+# power-cap controls and other writable attributes keep their default permissions.
+SUBSYSTEM=="powercap", ACTION=="add|change", RUN+="/bin/sh -c 'test -e /sys%p/energy_uj && chmod 0444 /sys%p/energy_uj'"
