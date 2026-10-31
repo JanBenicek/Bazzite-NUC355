@@ -1,4 +1,4 @@
-# Permit only the image-owned SMB mount manager without an authentication prompt.
+# Permit only the image-owned SMB automount manager without an authentication prompt.
 # The helper rejects root/direct execution, derives the account from SUDO_USER,
 # confines mountpoints to /mnt/users/<caller> and validates user-controlled options.
-ALL ALL=(root) NOPASSWD: /usr/libexec/bazzite-nuc355/smb-mount-manager mount, /usr/libexec/bazzite-nuc355/smb-mount-manager unmount
+ALL ALL=(root) NOPASSWD: /usr/libexec/bazzite-nuc355/smb-mount-manager setup, /usr/libexec/bazzite-nuc355/smb-mount-manager teardown
