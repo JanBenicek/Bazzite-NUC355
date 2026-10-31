@@ -15,6 +15,7 @@ ETCHER_VERSION=2
 BOOTSTRAP_VERSION=2
 TMOG_VERSION=1
 RESOLVE_VERSION=1
+SMB_MOUNTS_VERSION=1
 
 retry() { local n=0; until "$@"; do n=$((n+1)); ((n>=3)) && return 1; echo "Retry $n: $*"; sleep 3; done; }
 download_dir() { xdg-user-dir DOWNLOAD 2>/dev/null || printf '%s\n' "$HOME/Downloads"; }
@@ -59,6 +60,42 @@ configure_docker() {
   sudo systemctl enable --now docker.service || return 1
   docker --version || return 1
   docker compose version || return 1
+}
+
+configure_smb_mounts() {
+  local dir="$HOME/.config/smb-mounts" cred="$HOME/.config/smb-mounts/credentials"
+  mkdir -p "$cred"
+  chmod 0700 "$dir" "$cred"
+  if [[ ! -e "$dir/mounts.conf" ]]; then
+    cat > "$dir/mounts.conf" <<'EOF'
+# Bazzite NUC355 per-user SMB/CIFS mounts
+# Uncomment and edit a section for every share you want mounted.
+# Mounts appear under /mnt/users/<your-user>/<mount>.
+# The matching credentials file must be chmod 600.
+#
+#[NAS]
+#share=//nas.example.local/data
+#mount=NAS
+#credentials=nas
+#options=vers=3.1.1
+#
+#[Media]
+#share=//nas.example.local/media
+#mount=Media
+#credentials=nas
+#options=vers=3.1.1,ro
+EOF
+    chmod 0600 "$dir/mounts.conf"
+  fi
+  if [[ ! -e "$cred/example" ]]; then
+    cat > "$cred/example" <<'EOF'
+username=YOUR_USERNAME
+password=YOUR_PASSWORD
+#domain=WORKGROUP
+EOF
+    chmod 0600 "$cred/example"
+  fi
+  echo "SMB mount template ready in $dir"
 }
 
 install_rider() {
@@ -138,6 +175,7 @@ CHANGED=0
 FAILED=()
 run_component flatpaks "$FLATPAKS_VERSION" 'Workstation Flatpaks' install_flatpaks || FAILED+=(flatpaks)
 run_component docker "$DOCKER_VERSION" 'Docker configuration' configure_docker || FAILED+=(docker)
+run_component smb-mounts "$SMB_MOUNTS_VERSION" 'Per-user SMB mount configuration' configure_smb_mounts || FAILED+=(smb-mounts)
 run_component rider "$RIDER_VERSION" 'JetBrains Toolbox / Rider setup' install_rider || FAILED+=(rider)
 run_component balena-etcher "$ETCHER_VERSION" 'balenaEtcher' verify_balena_etcher || FAILED+=(balena-etcher)
 run_component bootstrap-studio "$BOOTSTRAP_VERSION" 'Bootstrap Studio' install_bootstrap_studio || FAILED+=(bootstrap-studio)
