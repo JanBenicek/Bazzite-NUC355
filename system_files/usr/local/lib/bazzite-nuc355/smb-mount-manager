@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ACTION="${1:-}"
+CALLER="${SUDO_USER:-}"
+[[ $EUID -eq 0 && -n "$CALLER" && "$CALLER" != root ]] || { echo 'Must be called through sudo by a regular user.' >&2; exit 1; }
+[[ "$ACTION" == mount || "$ACTION" == unmount ]] || { echo 'Usage: smb-mount-manager mount|unmount' >&2; exit 2; }
+
+HOME_DIR="$(getent passwd "$CALLER" | cut -d: -f6)"
+UID_NUM="$(id -u "$CALLER")"
+GID_NUM="$(id -g "$CALLER")"
+CONFIG="$HOME_DIR/.config/smb-mounts/mounts.conf"
+BASE="/mnt/users/$CALLER"
+
+[[ -n "$HOME_DIR" && "$HOME_DIR" == /* ]] || exit 1
+[[ -f "$CONFIG" ]] || exit 0
+
+# Refuse configurations writable by another account. The file may be owned by
+# the user; credentials are checked separately and must not be group/world readable.
+[[ "$(stat -c %U "$CONFIG")" == "$CALLER" ]] || { echo "Ignoring $CONFIG: wrong owner." >&2; exit 1; }
+
+mkdir -p "$BASE"
+chown "$CALLER:$GID_NUM" "$BASE"
+chmod 0700 "$BASE"
+
+trim() { local s="$1"; s="${s#"${s%%[![:space:]]*}"}"; s="${s%"${s##*[![:space:]]}"}"; printf '%s' "$s"; }
+valid_name() { [[ "$1" =~ ^[A-Za-z0-9._-]+$ && "$1" != . && "$1" != .. ]]; }
+
+process_share() {
+  local name="$1" share="$2" mount_name="$3" cred_name="$4" options="$5"
+  [[ -n "$name" ]] || return 0
+  [[ "$share" == //*/* ]] || { echo "[$name] invalid SMB share: $share" >&2; return 1; }
+  valid_name "$mount_name" || { echo "[$name] invalid mount name." >&2; return 1; }
+  valid_name "$cred_name" || { echo "[$name] invalid credentials name." >&2; return 1; }
+
+  local target="$BASE/$mount_name" cred="$HOME_DIR/.config/smb-mounts/credentials/$cred_name"
+  mkdir -p "$target"; chown "$CALLER:$GID_NUM" "$target"
+
+  if [[ "$ACTION" == unmount ]]; then
+    mountpoint -q "$target" && umount "$target" || true
+    return 0
+  fi
+
+  [[ -f "$cred" ]] || { echo "[$name] credentials missing: $cred" >&2; return 1; }
+  [[ "$(stat -c %U "$cred")" == "$CALLER" ]] || { echo "[$name] credentials have wrong owner." >&2; return 1; }
+  local mode; mode="$(stat -c %a "$cred")"
+  (( (8#$mode & 077) == 0 )) || { echo "[$name] credentials must not be accessible by group/others (chmod 600)." >&2; return 1; }
+  mountpoint -q "$target" && return 0
+
+  local opts="credentials=$cred,uid=$UID_NUM,gid=$GID_NUM,iocharset=utf8,_netdev,nosuid,nodev"
+  [[ -n "$options" ]] && opts="$opts,$options"
+  mount -t cifs "$share" "$target" -o "$opts"
+}
+
+section='' share='' mount_name='' cred_name='' options=''
+flush() { [[ -z "$section" ]] || process_share "$section" "$share" "${mount_name:-$section}" "${cred_name:-$section}" "$options"; }
+while IFS= read -r raw || [[ -n "$raw" ]]; do
+  line="$(trim "$raw")"
+  [[ -z "$line" || "$line" == \#* || "$line" == \;* ]] && continue
+  if [[ "$line" =~ ^\[([^][]+)\]$ ]]; then
+    flush
+    section="${BASH_REMATCH[1]}"; share=''; mount_name=''; cred_name=''; options=''
+    continue
+  fi
+  [[ "$line" == *=* ]] || continue
+  key="$(trim "${line%%=*}")"; value="$(trim "${line#*=}")"
+  case "$key" in
+    share) share="$value" ;;
+    mount) mount_name="$value" ;;
+    credentials) cred_name="$value" ;;
+    options) options="$value" ;;
+  esac
+done < "$CONFIG"
+flush
