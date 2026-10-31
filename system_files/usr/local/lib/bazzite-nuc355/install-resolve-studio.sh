@@ -16,10 +16,12 @@ while true; do
 done
 
 echo "Found: $ZIP"
-TMP="$(mktemp -d -t resolve-studio.XXXXXX)"
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/bazzite-nuc355"
+mkdir -p "$CACHE_DIR"
+TMP="$(mktemp -d -p "$CACHE_DIR" resolve-studio.XXXXXX)"
 trap 'rm -rf "$TMP"' EXIT
 
-echo 'Extracting DaVinci Resolve Studio...'
+echo "Extracting DaVinci Resolve Studio to persistent storage: $TMP"
 unzip -q "$ZIP" -d "$TMP"
 RUN="$(find "$TMP" -type f -iname 'DaVinci_Resolve_Studio_*_Linux.run' -print -quit)"
 [[ -n "$RUN" ]] || { echo 'Studio .run installer not found in ZIP.' >&2; exit 1; }
