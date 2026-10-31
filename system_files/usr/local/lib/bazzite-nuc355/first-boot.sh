@@ -13,7 +13,7 @@ DOCKER_VERSION=1
 RIDER_VERSION=1
 ETCHER_VERSION=2
 BOOTSTRAP_VERSION=2
-TMOG_VERSION=1
+TMOG_VERSION=2
 RESOLVE_VERSION=1
 SMB_MOUNTS_VERSION=1
 
@@ -151,13 +151,19 @@ EOF
 install_tmog() {
   [[ -x "$HOME/Applications/TMOG.AppImage" ]] && return 0
   local dl file answer; dl="$(download_dir)"
-  echo 'The TMOG website will now open.'; echo 'Download: downloads_TaskManagerOG-1.0.0-x86_64.appimage'; open_url 'https://tmog.org/'
+  echo 'The TMOG website will now open.'
+  echo 'Download the Linux AppImage. The filename may contain a prefix, version, separators, or architecture suffix.'
+  open_url 'https://tmog.org/'
   while true; do
     read -r -p 'When the TMOG download is complete, press Enter: ' _
-    file="$(find "$dl" -maxdepth 1 -type f -iname 'downloads_TaskManagerOG-*-x86_64.appimage' -print -quit 2>/dev/null)"
+    file="$(find "$dl" -maxdepth 1 -type f \( -iname '*TaskManagerOG*.appimage' -o -iname '*Task*Manager*OG*.appimage' -o -iname '*TMOG*.appimage' \) -print -quit 2>/dev/null)"
     [[ -n "$file" ]] && break
-    echo "TMOG AppImage was not found in $dl"; read -r -p 'Press Enter to search again, or type q to stop provisioning for now: ' answer; [[ "${answer,,}" == q ]] && return 1
+    echo "TMOG AppImage was not found in $dl"
+    echo 'Expected a .AppImage filename containing TaskManagerOG, Task/Manager/OG, or TMOG (case-insensitive).'
+    read -r -p 'Press Enter to search again, or type q to stop provisioning for now: ' answer
+    [[ "${answer,,}" == q ]] && return 1
   done
+  echo "Using TMOG AppImage: $file"
   mv -- "$file" "$HOME/Applications/TMOG.AppImage" || return 1; chmod +x "$HOME/Applications/TMOG.AppImage"
   cat > "$HOME/.local/share/applications/tmog.desktop" <<EOF
 [Desktop Entry]
