@@ -1,17 +1,15 @@
 [Unit]
-Description=Bazzite NUC355 per-user SMB/CIFS mounts
+Description=Bazzite NUC355 per-user SMB/CIFS automount setup
 After=graphical-session-pre.target
 PartOf=graphical-session.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/bin/sudo -n /usr/libexec/bazzite-nuc355/smb-mount-manager mount
-ExecStop=/usr/bin/sudo -n /usr/libexec/bazzite-nuc355/smb-mount-manager unmount
+ExecStart=/usr/bin/sudo -n /usr/libexec/bazzite-nuc355/smb-mount-manager setup
+ExecStop=/usr/bin/sudo -n /usr/libexec/bazzite-nuc355/smb-mount-manager teardown
 TimeoutStartSec=30
 TimeoutStopSec=30
-Restart=on-failure
-RestartSec=10
 
 [Install]
 WantedBy=default.target
