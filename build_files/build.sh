@@ -63,7 +63,10 @@ install -Dm0755 /ctx/system_files/usr/local/bin/n355-media-check /usr/bin/n355-m
 chmod 0755 /usr/libexec/bazzite-nuc355/first-boot.sh
 chmod 0755 /usr/libexec/bazzite-nuc355/install-resolve-studio.sh
 chmod 0755 /usr/libexec/bazzite-nuc355/set-hardware-hostname.sh
+chmod 0755 /usr/libexec/bazzite-nuc355/smb-mount-manager
+chmod 0440 /etc/sudoers.d/bazzite-nuc355-smb-mounts
 systemctl enable bazzite-nuc355-hostname.service
+systemctl --global enable bazzite-nuc355-smb-mounts.service
 
 # Keep the final image clean.
 dnf5 clean all
