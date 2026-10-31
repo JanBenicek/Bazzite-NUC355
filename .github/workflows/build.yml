@@ -1,11 +1,14 @@
 name: Build custom Bazzite image
 
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
   workflow_dispatch:
   schedule:
-    # Poll main every five minutes. A build starts only after the latest commit
-    # has been unchanged for at least five minutes and has no published SHA tag.
-    - cron: '*/5 * * * *'
+    # Rebuild regularly so the image tracks Bazzite stable even without repo changes.
+    - cron: '17 4 * * 1'
 
 permissions:
   contents: read
@@ -14,7 +17,7 @@ permissions:
 
 concurrency:
   group: bazzite-n355-build
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -23,79 +26,30 @@ jobs:
       IMAGE_NAME: bazzite-n355
       REGISTRY_AUTH_FILE: /tmp/containers-auth.json
     steps:
-      - name: Checkout latest main
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 1
-
-      - name: Decide whether scheduled build is needed
-        id: gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          sha="$(git rev-parse HEAD)"
-          short_sha="${sha::12}"
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          echo "short_sha=$short_sha" >> "$GITHUB_OUTPUT"
-
-          if [[ '${{ github.event_name }}' == 'workflow_dispatch' ]]; then
-            echo 'build=true' >> "$GITHUB_OUTPUT"
-            echo 'Manual build requested; bypassing debounce gate.'
-            exit 0
-          fi
-
-          commit_epoch="$(git show -s --format=%ct HEAD)"
-          now_epoch="$(date +%s)"
-          age=$((now_epoch - commit_epoch))
-          if (( age < 300 )); then
-            echo 'build=false' >> "$GITHUB_OUTPUT"
-            echo "Latest main commit is only ${age}s old; waiting for a later poll."
-            exit 0
-          fi
-
-          owner="${GITHUB_REPOSITORY_OWNER,,}"
-          tag="sha-$short_sha"
-          status="$(curl -sS -o /dev/null -w '%{http_code}' \
-            -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
-            "https://ghcr.io/v2/${owner}/${IMAGE_NAME}/manifests/${tag}" || true)"
-          if [[ "$status" == 200 ]]; then
-            echo 'build=false' >> "$GITHUB_OUTPUT"
-            echo "Image tag ${tag} already exists; nothing to build."
-          else
-            echo 'build=true' >> "$GITHUB_OUTPUT"
-            echo "Repository has been idle for at least five minutes and ${tag} is not published."
-          fi
-
-      - name: Stop when no build is needed
-        if: steps.gate.outputs.build != 'true'
-        run: echo 'Debounce poll completed without starting an image build.'
 
       - name: Install Podman
-        if: steps.gate.outputs.build == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y podman
 
       - name: Install cosign
-        if: steps.gate.outputs.build == 'true'
         uses: sigstore/cosign-installer@v4.1.2
 
       - name: Set image reference and immutable tags
-        if: steps.gate.outputs.build == 'true'
         id: image
         shell: bash
         run: |
           owner="${GITHUB_REPOSITORY_OWNER,,}"
           ref="ghcr.io/${owner}/${IMAGE_NAME}"
           date_tag="$(date -u +%Y-%m-%d)"
-          short_sha='${{ steps.gate.outputs.short_sha }}'
+          short_sha="${GITHUB_SHA::12}"
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
           echo "date_tag=$date_tag" >> "$GITHUB_OUTPUT"
           echo "sha_tag=sha-$short_sha" >> "$GITHUB_OUTPUT"
 
       - name: Require signing key
-        if: steps.gate.outputs.build == 'true'
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
         run: |
@@ -105,25 +59,22 @@ jobs:
           }
 
       - name: Log in to GHCR
-        if: steps.gate.outputs.build == 'true'
         run: |
           printf '%s' '${{ github.token }}' | podman login ghcr.io \
             --authfile "$REGISTRY_AUTH_FILE" \
             --username '${{ github.actor }}' --password-stdin
 
       - name: Build
-        if: steps.gate.outputs.build == 'true'
         run: |
           podman build --pull=newer \
             --tag '${{ steps.image.outputs.ref }}:latest' \
             --label org.opencontainers.image.source='${{ github.server_url }}/${{ github.repository }}' \
-            --label org.opencontainers.image.revision='${{ steps.gate.outputs.sha }}' \
+            --label org.opencontainers.image.revision='${{ github.sha }}' \
             .
           podman tag '${{ steps.image.outputs.ref }}:latest' '${{ steps.image.outputs.ref }}:${{ steps.image.outputs.date_tag }}'
           podman tag '${{ steps.image.outputs.ref }}:latest' '${{ steps.image.outputs.ref }}:${{ steps.image.outputs.sha_tag }}'
 
       - name: Push
-        if: steps.gate.outputs.build == 'true'
         run: |
           podman push --authfile "$REGISTRY_AUTH_FILE" --digestfile /tmp/image-digest \
             '${{ steps.image.outputs.ref }}:latest'
@@ -138,7 +89,6 @@ jobs:
           echo "Digest: $(cat /tmp/image-digest)"
 
       - name: Sign image
-        if: steps.gate.outputs.build == 'true'
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
           COSIGN_PASSWORD: ''
@@ -151,7 +101,7 @@ jobs:
             '${{ steps.image.outputs.ref }}@'"$(cat /tmp/image-digest)"
 
       - name: Verify signature
-        if: steps.gate.outputs.build == 'true' && hashFiles('cosign.pub') != ''
+        if: ${{ hashFiles('cosign.pub') != '' }}
         env:
           DOCKER_CONFIG: /tmp/cosign-docker
         run: |
