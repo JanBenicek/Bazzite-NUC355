@@ -1,0 +1,15 @@
+[Unit]
+Description=Bazzite NUC355 per-user SMB/CIFS mounts
+After=graphical-session-pre.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/sudo -n /usr/libexec/bazzite-nuc355/smb-mount-manager mount
+ExecStop=/usr/bin/sudo -n /usr/libexec/bazzite-nuc355/smb-mount-manager unmount
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target
