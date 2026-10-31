@@ -91,6 +91,7 @@ The same versioned provisioning system handles:
 - Bootstrap Studio — AppImage downloaded from the vendor
 - TMOG — AppImage downloaded from the vendor
 - DaVinci Resolve Studio — vendor Linux ZIP installed through the Bazzite/davincibox workflow
+- per-user SMB/CIFS automount configuration
 
 DaVinci Resolve activation/licensing is never stored in this repository or image.
 
@@ -112,6 +113,7 @@ balena-etcher.v2.done
 bootstrap-studio.v2.done
 tmog.v1.done
 resolve-studio.v1.done
+smb-mounts.v1.done
 ```
 
 Components already at the requested version are skipped. If provisioning logic or the desired state of one component changes, only its version is incremented and only that component runs again.
@@ -273,14 +275,115 @@ Note that bootc rollback changes the OS deployment. System-wide Flatpaks install
 
 External NTFS disks are supported through `ntfs-3g`. Avoid moving a volume from Windows while it is hibernated or Fast-Startup-locked.
 
-A temporary SMB mount can be created with, for example:
+### Per-user SMB automount
+
+The image contains its own per-user SMB/CIFS automount mechanism. It is intended for NAS shares that should be available automatically for each configured user without requiring a sudo password for normal mount/unmount operation.
+
+First-login provisioning creates the configuration structure without overwriting existing files:
+
+```text
+~/.config/smb-mounts/
+├── mounts.conf
+└── credentials/
+```
+
+The component is tracked by:
+
+```text
+~/.local/state/bazzite-nuc355/components/smb-mounts.v1.done
+```
+
+Configured shares appear below:
+
+```text
+/mnt/users/<username>/<mount>
+```
+
+For example:
+
+```text
+/mnt/users/honza/NAS
+/mnt/users/honza/Media
+```
+
+The mount configuration is stored in:
+
+```text
+~/.config/smb-mounts/mounts.conf
+```
+
+Example:
+
+```ini
+[NAS]
+share=//192.168.1.10/data
+mount=NAS
+credentials=nas
+options=vers=3.1.1
+
+[Media]
+share=//192.168.1.10/media
+mount=Media
+credentials=nas
+options=vers=3.1.1,ro
+```
+
+Credentials are stored separately, for example:
+
+```text
+~/.config/smb-mounts/credentials/nas
+```
+
+with contents such as:
+
+```ini
+username=honza
+password=PASSWORD
+#domain=WORKGROUP
+```
+
+Credential files must not be readable by other users:
+
+```bash
+chmod 600 ~/.config/smb-mounts/credentials/nas
+```
+
+The configuration and credential names are validated by the image-owned privileged helper. The helper confines mountpoints to `/mnt/users/<current-user>` and only accepts a restricted set of CIFS options. Routine operation is allowed through a narrowly scoped sudoers rule, so the desktop user is not repeatedly asked for an administrator password.
+
+#### Lazy mount behavior
+
+Shares are **not mounted immediately at login**. Login prepares transient systemd `.automount`/`.mount` units and the actual CIFS connection is made only when the mount path is accessed.
+
+The expected lifecycle is:
+
+```text
+user login
+    ↓
+prepare /mnt/users/<user>/<mount>
+    ↓
+activate systemd automount
+    ↓
+first access to the path
+    ↓
+CIFS mount is attempted
+```
+
+This means an unavailable NAS does not block login. If the first access occurs while the NAS is offline, that access can fail. When the NAS becomes available later, simply accessing the path again causes systemd to attempt the CIFS mount again; no logout, reboot or manual `mount` command is required.
+
+An idle mounted share is automatically unmounted after approximately **5 minutes** (`TimeoutIdleSec=300`). The automount remains available, so the next access mounts the share again on demand.
+
+At logout, the per-user transient mount/automount units are torn down by the user service.
+
+The base CIFS mount uses safety/network options including `_netdev`, `nosuid`, `nodev` and `noexec`, plus the current user's UID/GID and the selected credentials file.
+
+Supported user-configurable options include `ro`, `rw`, `soft`, `serverino`, `noserverino`, `nounix`, `seal`, `cache=none`, `cache=strict`, `cache=loose` and SMB protocol versions `2.1`, `3.0`, `3.02` and `3.1.1`.
+
+A temporary manual SMB mount is still possible when needed, for example:
 
 ```bash
 sudo mkdir -p /mnt/nas
 sudo mount -t cifs //server/share /mnt/nas -o username=USER
 ```
-
-For permanent NAS mounts, prefer `/etc/fstab` or systemd automount configuration with options such as `_netdev,nofail,x-systemd.automount` so an unavailable NAS does not block startup.
 
 ## DaVinci Resolve Studio
 
