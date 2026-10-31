@@ -15,6 +15,9 @@ permissions:
   packages: write
   id-token: write
 
+# Every new push cancels the previous waiting/building run. The latest run waits
+# five minutes and then verifies that main still points at the commit that
+# triggered it. This effectively debounces bursts of commits into one image build.
 concurrency:
   group: bazzite-n355-build
   cancel-in-progress: true
@@ -26,6 +29,20 @@ jobs:
       IMAGE_NAME: bazzite-n355
       REGISTRY_AUTH_FILE: /tmp/containers-auth.json
     steps:
+      - name: Wait for repository to become idle
+        if: github.event_name == 'push'
+        run: sleep 300
+
+      - name: Verify this is still the latest main commit
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          latest="$(git ls-remote '${{ github.server_url }}/${{ github.repository }}.git' refs/heads/main | cut -f1)"
+          if [[ "$latest" != "$GITHUB_SHA" ]]; then
+            echo "A newer commit exists on main; this build is obsolete."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 
