@@ -32,10 +32,11 @@ PACKAGES=(
 dnf5 -y install "${PACKAGES[@]}"
 
 # Docker Engine: use Docker's official Fedora repository and include Compose v2
-# and Buildx. The daemon is enabled in the image and the provisioning script adds
-# the desktop user to the docker group.
+# and Buildx. Ensure the docker group is present in /etc before the image is
+# deployed so first-login provisioning can add the desktop user to it.
 dnf5 -y config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
 dnf5 -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+getent group docker >/dev/null 2>&1 || groupadd --system docker
 systemctl enable docker.service containerd.service
 
 # balenaEtcher must be installed while the immutable image is being built.
