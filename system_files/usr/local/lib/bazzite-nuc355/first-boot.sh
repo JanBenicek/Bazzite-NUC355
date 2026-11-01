@@ -13,7 +13,6 @@ RIDER_VERSION=2
 ETCHER_VERSION=2
 BOOTSTRAP_VERSION=2
 TMOG_VERSION=2
-RESOLVE_VERSION=1
 SMB_MOUNTS_VERSION=1
 
 retry() { local n=0; until "$@"; do n=$((n+1)); ((n>=3)) && return 1; echo "Retry $n: $*"; sleep 3; done; }
@@ -87,8 +86,6 @@ install_tmog() {
   mv -- "$file" "$HOME/Applications/TMOG.AppImage" || return 1; chmod +x "$HOME/Applications/TMOG.AppImage"
 }
 
-install_resolve() { /usr/libexec/bazzite-nuc355/install-resolve-studio.sh; }
-
 CHANGED=0; FAILED=()
 run_component flatpaks "$FLATPAKS_VERSION" 'Workstation Flatpaks' install_flatpaks || FAILED+=(flatpaks)
 run_component docker "$DOCKER_VERSION" 'Docker configuration' configure_docker || FAILED+=(docker)
@@ -97,7 +94,6 @@ run_component rider "$RIDER_VERSION" 'JetBrains Rider' install_rider || FAILED+=
 run_component balena-etcher "$ETCHER_VERSION" 'balenaEtcher' verify_balena_etcher || FAILED+=(balena-etcher)
 run_component bootstrap-studio "$BOOTSTRAP_VERSION" 'Bootstrap Studio' install_bootstrap_studio || FAILED+=(bootstrap-studio)
 run_component tmog "$TMOG_VERSION" 'TMOG' install_tmog || FAILED+=(tmog)
-run_component resolve-studio "$RESOLVE_VERSION" 'DaVinci Resolve Studio' install_resolve || FAILED+=(resolve-studio)
 if ((${#FAILED[@]})); then echo; echo "Failed or deferred components: ${FAILED[*]}"; exit 1; fi
 if ((CHANGED == 0)); then exit 0; fi
 echo 'Provisioning completed. Rebooting in 10 seconds.'; sleep 10; systemctl reboot || sudo systemctl reboot
